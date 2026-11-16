@@ -135,7 +135,8 @@ t3 thread list
 works. A new thread uses the project's default model and permission mode, and
 runs in the project folder unless you pass `--worktree <base-branch>`. `send`
 never interrupts: a busy thread gets the message as its next turn. Pass `-` as
-the message to read it from stdin.
+the message to read it from stdin. `--model` (and `--effort`) switch the thread to
+that model of its own provider from this message on.
 
 `--wait` prints the agent's reply. It exits 1 when the run fails or stops, and
 2 when the agent waits for an answer you give in the app. Add `--json` for a

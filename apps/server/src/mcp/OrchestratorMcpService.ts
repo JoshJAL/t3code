@@ -3119,7 +3119,29 @@ const make = Effect.gen(function* () {
       yield* resolveRuntimeMode(limits.runtimeMode, target.thread.runtimeMode);
       yield* resolveInteractionMode(limits.interactionMode, target.thread.interactionMode);
 
-      const mode = input.mode ?? "auto";
+      if (
+        input.modelSelection !== undefined &&
+        (input.mode === "steer" || input.mode === "restart")
+      ) {
+        return yield* failure(
+          "invalid_request",
+          `modelSelection needs a send that starts or queues a turn, not mode:'${input.mode}'.`,
+        );
+      }
+      // A switch cannot join a running turn, so `auto` queues instead of steering.
+      const mode =
+        input.modelSelection !== undefined && (input.mode ?? "auto") === "auto"
+          ? "queue"
+          : (input.mode ?? "auto");
+      const providers = input.modelSelection === undefined ? [] : yield* loadProviders;
+      const switchedSelection =
+        input.modelSelection === undefined
+          ? undefined
+          : (yield* resolveTargetRechecking({
+              parent: target,
+              target: input.modelSelection,
+              providers,
+            })).modelSelection;
       const key = yield* requestKey(input.clientRequestId);
       const messageId = stableOperationMessageId({
         scope,
@@ -3141,6 +3163,7 @@ const make = Effect.gen(function* () {
           attachments: [],
           mode,
           ...(input.freshContext ? { freshContext: true } : {}),
+          ...(switchedSelection === undefined ? {} : { modelSelection: switchedSelection }),
           createdBy: "agent",
           creationSource: "mcp",
         })
@@ -3162,6 +3185,16 @@ const make = Effect.gen(function* () {
         ...(result.run.delegatedTaskId === undefined ? {} : { taskId: result.run.delegatedTaskId }),
         status: result.run.status,
         delivery: result.delivery,
+        ...(switchedSelection === undefined
+          ? {}
+          : {
+              modelSelection: {
+                model: switchedSelection.model,
+                ...(switchedSelection.options === undefined
+                  ? {}
+                  : { options: switchedSelection.options }),
+              },
+            }),
       } satisfies OrchestratorMcpThreadSendResult;
     }),
     waitForThread: Effect.fn("OrchestratorMcpService.waitForThread")(function* (scope, input) {
