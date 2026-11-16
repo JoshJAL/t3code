@@ -3188,11 +3188,12 @@ const make = Effect.gen(function* () {
         ...(switchedSelection === undefined
           ? {}
           : {
+              // Report what the run stored, not what was requested.
               modelSelection: {
-                model: switchedSelection.model,
-                ...(switchedSelection.options === undefined
+                model: result.run.modelSelection.model,
+                ...(result.run.modelSelection.options === undefined
                   ? {}
-                  : { options: switchedSelection.options }),
+                  : { options: result.run.modelSelection.options }),
               },
             }),
       } satisfies OrchestratorMcpThreadSendResult;
